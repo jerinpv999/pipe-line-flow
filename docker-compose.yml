@@ -1,0 +1,42 @@
+# Local / single-host setup: MongoDB + master (API, UI, gRPC) + one demo agent.
+# Real deploy servers run their own agent pointing at <master-host>:50051.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  master:
+    build:
+      context: .
+      dockerfile: master/Dockerfile
+    restart: unless-stopped
+    depends_on: [mongo]
+    environment:
+      MONGO_URI: mongodb://mongo:27017/cicd
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      JWT_SECRET: ${JWT_SECRET:-change-me-jwt}
+      AGENT_TOKEN: ${AGENT_TOKEN:-change-me-agent}
+    ports:
+      - "4000:4000"     # web UI + REST API
+      - "50051:50051"   # gRPC for agents
+
+  demo-agent:
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
+    restart: unless-stopped
+    depends_on: [master]
+    environment:
+      MASTER_ADDR: master:50051
+      AGENT_TOKEN: ${AGENT_TOKEN:-change-me-agent}
+      AGENT_NAME: demo-agent
+      AGENT_LABELS: demo,staging
+    volumes:
+      - agent-workspace:/workspace
+
+volumes:
+  mongo-data:
+  agent-workspace:

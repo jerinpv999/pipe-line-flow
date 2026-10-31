@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+package cicd;
+
+// Agents dial the master and keep one long-lived bidirectional stream open.
+// This works even when deploy servers are behind NAT / firewalls.
+service AgentService {
+  rpc Connect(stream AgentMessage) returns (stream MasterMessage);
+}
+
+// ---------- Agent -> Master ----------
+message AgentMessage {
+  oneof payload {
+    Register   register  = 1;
+    Heartbeat  heartbeat = 2;
+    LogChunk   log       = 3;
+    StepUpdate step      = 4;
+    JobResult  result    = 5;
+  }
+}
+
+message Register {
+  string token = 1;
+  string name = 2;
+  string hostname = 3;
+  string platform = 4;
+  repeated string labels = 5;
+  string version = 6;
+}
+
+message Heartbeat {
+  int64 timestamp = 1;
+  double load = 2;
+  int64 free_mem = 3;
+  int64 total_mem = 4;
+  bool busy = 5;
+}
+
+message LogChunk {
+  string job_id = 1;
+  int32 step_index = 2;   // -1 = job-level message
+  string stream = 3;      // stdout | stderr | system
+  string data = 4;
+  int64 timestamp = 5;
+}
+
+message StepUpdate {
+  string job_id = 1;
+  int32 step_index = 2;
+  string status = 3;      // running | success | failed | skipped | cancelled
+  int32 exit_code = 4;
+  int64 timestamp = 5;
+}
+
+message JobResult {
+  string job_id = 1;
+  string status = 2;      // success | failed | cancelled
+  string error = 3;
+  int64 timestamp = 4;
+}
+
+// ---------- Master -> Agent ----------
+message MasterMessage {
+  oneof payload {
+    Registered    registered = 1;
+    JobAssignment job        = 2;
+    CancelJob     cancel     = 3;
+  }
+}
+
+message Registered {
+  bool ok = 1;
+  string agent_id = 2;
+  string message = 3;
+}
+
+message Step {
+  string name = 1;
+  string script = 2;
+  bool continue_on_error = 3;
+  int32 timeout_seconds = 4;
+}
+
+message JobAssignment {
+  string job_id = 1;
+  string run_id = 2;
+  string pipeline_name = 3;
+  repeated Step steps = 4;
+  map<string, string> env = 5;
+  string shell = 6;
+  string working_dir = 7;
+}
+
+message CancelJob {
+  string job_id = 1;
+}

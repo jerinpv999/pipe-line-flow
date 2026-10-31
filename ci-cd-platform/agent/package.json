@@ -1,0 +1,17 @@
+{
+  "name": "cicd-agent",
+  "version": "1.0.0",
+  "description": "CI/CD deploy agent: connects to the master over gRPC and runs pipeline shell steps",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.11.1",
+    "@grpc/proto-loader": "^0.7.13",
+    "dotenv": "^16.4.5"
+  }
+}

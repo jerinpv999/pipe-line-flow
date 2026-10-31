@@ -1,0 +1,23 @@
+# systemd unit for the CI/CD agent
+# Install:
+#   sudo cp -r agent /opt/cicd-agent && cp -r proto /opt/cicd-agent/proto
+#   cd /opt/cicd-agent && npm ci --omit=dev
+#   sudo cp cicd-agent.service /etc/systemd/system/ && sudo systemctl daemon-reload
+#   sudo systemctl enable --now cicd-agent
+[Unit]
+Description=CI/CD deploy agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/opt/cicd-agent
+EnvironmentFile=/opt/cicd-agent/.env
+ExecStart=/usr/bin/node src/index.js
+Restart=always
+RestartSec=5
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
